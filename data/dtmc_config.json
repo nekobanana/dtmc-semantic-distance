@@ -1,0 +1,45 @@
+{
+  "seed": null,
+  "dtmcGeneratorConfigs": [
+    {
+      "statesNumberDistribution": {
+        "min": 16,
+        "max": 64,
+        "distributionType": "uniform"
+      },
+      "edgesNumberDistribution": {
+        "min": 4,
+        "max": 16,
+        "distributionType": "uniform"
+      },
+      "edgesLocalityDistribution": {
+        "min": -7,
+        "max": 8,
+        "distributionType": "uniform"
+      },
+      "selfLoopValue": null,
+      "connectSCCs": false,
+      "numberOfDTMCs": 10
+    },
+    {
+      "statesNumberDistribution": {
+        "min": 64,
+        "max": 300,
+        "distributionType": "uniform"
+      },
+      "edgesNumberDistribution": {
+        "min": 16,
+        "max": 64,
+        "distributionType": "uniform"
+      },
+      "edgesLocalityDistribution": {
+        "min": -31,
+        "max": 32,
+        "distributionType": "uniform"
+      },
+      "selfLoopValue": null,
+      "connectSCCs": false,
+      "numberOfDTMCs": 10
+    }
+  ]
+}
