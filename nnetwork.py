@@ -6,7 +6,7 @@ from transformers import AutoModel, AutoTokenizer
 
 
 class DTMCTransformer(nn.Module):
-    def __init__(self, model_name="bert-base-uncased", embed_dim=128):
+    def __init__(self, model_name="bert-base-uncased", embed_dim=1000):
         super(DTMCTransformer, self).__init__()
         self.encoder = AutoModel.from_pretrained(model_name)
         self.projection = nn.Linear(self.encoder.config.hidden_size, embed_dim)
