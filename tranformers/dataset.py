@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from torch_geometric.data import Data
 
 
-class DTMCDataset(Dataset):
+class DTMCDatasetTransformer(Dataset):
     def __init__(self, dtmc_folder, label_folder, label_length):
         self.graph_data = []
         self.labels = []
@@ -80,7 +80,8 @@ def adaptive_maxpool1d(input_tensor, target_length):
     """
     input_length = input_tensor.shape[-1]
     if input_length < target_length:
-        raise ValueError("La lunghezza target deve essere minore o uguale alla lunghezza dell'input.")
+        input_tensor = F.pad(input_tensor, (0, target_length - input_length))
+        input_length = input_tensor.shape[-1]
 
     # Calcola kernel_size e stride per ottenere esattamente target_length
     kernel_size = input_length // target_length

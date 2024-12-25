@@ -11,10 +11,9 @@ class GraphTransformerModule(pl.LightningModule):
                  num_heads: int,
                  out_channels: int,
                  num_layers: int = 2,
-                 learning_rate: float = 0.001):
+                 learning_rate: float = 0.0001):
         super().__init__()
-        self.save_hyperparameters()
-
+        self.save_hyperparameters(in_channels, hidden_channels, num_heads, out_channels, num_layers, learning_rate)
         # Transformer layers
         self.layers = nn.ModuleList()
         self.linear_layers = nn.ModuleList()
@@ -77,6 +76,9 @@ class GraphTransformerModule(pl.LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+
+    def on_train_start(self):
+        self.logger.log_hyperparams(self.hparams)
 
 
 class SiameseDTMC(pl.LightningModule):

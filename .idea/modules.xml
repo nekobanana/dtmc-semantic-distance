@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/cnn_dtmc.iml" filepath="$PROJECT_DIR$/.idea/cnn_dtmc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/dtmc_nn.iml" filepath="$PROJECT_DIR$/.idea/dtmc_nn.iml" />
     </modules>
   </component>
 </project>
