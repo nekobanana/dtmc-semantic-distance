@@ -22,10 +22,16 @@ def preprocess_distributions(dtmc_folder, label_folder, processed_folder, dtmc_m
 
         distr_raw = {int(k): v for k, v in distr_raw.items()}
         max_key = max(distr_raw.keys())
-        distr = np.array([distr_raw.get(idx, 0) for idx in range(max_key)], dtype=float)
+        distr = np.array([distr_raw.get(idx, 0) for idx in range(max_key + 1)], dtype=float)
+        if distr.sum() == 0:
+            print(f'Error for file {file_name}')
         distr = distr / distr.sum()
         dtmc = np.array(dtmc_raw, dtype=float)
-        dtmc = np.pad(dtmc, dtmc_max_size)
+        dtmc_n = dtmc.shape[0]
+        assert dtmc_n == dtmc.shape[1]
+        pad_before = int((dtmc_max_size - dtmc_n) / 2)
+        pad_after = dtmc_max_size - dtmc_n - pad_before
+        dtmc = np.pad(dtmc, (pad_before, pad_after), mode='constant', constant_values=0)
         with open(os.path.join(processed_dtmc_folder, file_name), 'w') as f:
             json.dump(dtmc.tolist(), f)
         with open(os.path.join(processed_label_folder, file_name), 'w') as f:
@@ -33,5 +39,6 @@ def preprocess_distributions(dtmc_folder, label_folder, processed_folder, dtmc_m
 
 
 if __name__ == '__main__':
-    preprocess_distributions('data/max100/raw/dtmcs', 'data/max100/raw/labels',
-                             'data/max100/ready',100)
+    base_folder = 'data/only32'
+    preprocess_distributions(f'{base_folder}/raw/dtmcs', f'{base_folder}/raw/labels',
+                             f'{base_folder}/ready',32)

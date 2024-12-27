@@ -1,23 +1,33 @@
-import json
-import random
 import torch
-import numpy as np
 import pytorch_lightning as pl
 from torch import nn, optim
 import torch.nn.functional as F
+
+class SiameseNetworkEncoder(pl.LightningModule):
+    def __init__(self, input_size, hidden_size):
+        super().__init__()
+        self.linear1 = nn.Linear(input_size, hidden_size)
+        self.linear2 = nn.Linear(hidden_size, hidden_size)
+        # nn.init.kaiming_normal_(self.linear1.weight, nonlinearity='relu')
+        # nn.init.kaiming_normal_(self.linear2.weight, nonlinearity='relu')
+        # nn.init.zeros_(self.linear1.bias)
+        # nn.init.zeros_(self.linear2.bias)
+
+    def forward(self, x):
+
+        x = self.linear1(x)
+        x = F.leaky_relu(x, negative_slope=0.01)
+        x = self.linear2(x)
+        x = F.leaky_relu(x, negative_slope=0.01)
+        return x
 
 class SiameseNetwork(pl.LightningModule):
     def __init__(self, max_dtmc_size, lr=0.001, margin=1.0):
         super().__init__()
         input_size = max_dtmc_size * max_dtmc_size
-        hidden_size = int(input_size * 0.8)
+        hidden_size = int(input_size * 1.8)
         self.save_hyperparameters(input_size, hidden_size)
-        self.encoder = nn.Sequential(
-            nn.Linear(input_size, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.ReLU()
-        )
+        self.encoder = SiameseNetworkEncoder(input_size, hidden_size)
         self.lr = lr
         self.margin = margin
 
@@ -26,9 +36,14 @@ class SiameseNetwork(pl.LightningModule):
         encoded_x2 = self.encoder(x2.reshape(x2.shape[0], 1, -1).squeeze(1))
         return torch.norm(encoded_x1 - encoded_x2, dim=-1, p=1)
 
+    # def contrastive_loss(self, distance, label):
+    #     loss_same = (torch.tensor(1, device="cuda").repeat(distance.shape) - label) * torch.pow(distance, 2)
+    #     loss_diff = label * torch.pow(torch.clamp(self.margin - distance, min=0.0), 2)
+    #     return torch.mean(loss_same + loss_diff)
+
     def contrastive_loss(self, distance, label):
-        loss_same = (torch.tensor(1, device="cuda").repeat(distance.shape) - label) * torch.pow(distance, 2)
-        loss_diff = label * torch.pow(torch.clamp(self.margin - distance, min=0.0), 2)
+        loss_same = (1 - label) * (distance ** 2)
+        loss_diff = label * (torch.clamp(self.margin - distance, min=0.0) ** 2)
         return torch.mean(loss_same + loss_diff)
 
     def training_step(self, batch, batch_idx):
@@ -42,8 +57,12 @@ class SiameseNetwork(pl.LightningModule):
         x1, x2, y = batch
         distances = self(x1, x2)
         loss = self.contrastive_loss(distances, y)
+        # loss = distances.mean()
         self.log("val_loss", loss)
         return loss
+
+    # def on_validation_epoch_end(self) -> None:
+    #     print(f'val_loss = {self.val_loss_acc / }')
 
     def test_step(self, batch, batch_idx):
         x1, x2, y = batch

@@ -15,9 +15,6 @@ from torch.utils.data import Dataset
 class DTMCDataset(Dataset):
     __metaclass__ = abc.ABCMeta
     def __init__(self, dtmc_folder, label_folder, ds_max_size = None, dtmc_max_size=300):
-        # self.transform = transforms.Compose([
-        #     transforms.CenterCrop([dtmc_max_size, dtmc_max_size]),
-        # ])
         self.ds_max_size = ds_max_size
         self.dtmc_data = []
         self.labels = []
@@ -31,31 +28,21 @@ class DTMCDataset(Dataset):
             label_path = os.path.join(label_folder, file_name)
 
             with open(dtmc_path, 'r') as f:
-                # dtmc = torch.tensor(json.load(f)['dtmc'], dtype=torch.float32, device='cuda')
-                dtmc = json.load(f)['dtmc']
+                dtmc = json.load(f)
 
             with open(label_path, 'r') as f:
-                distr_raw = json.load(f)['distribution']
+                distr = json.load(f)
 
-            distr_raw = {int(k): v for k, v in distr_raw.items()}
-            max_key = max(distr_raw.keys())
-            distr = [distr_raw.get(idx, 0) for idx in range(max_key)]
-            # distr = torch.tensor([distr_raw.get(idx, 0) for idx in range(max_key)], dtype=torch.float64)
-            # distr = torch.nn.functional.normalize(distr, p=2, dim=-1)
-            # dtmc = self.transform(dtmc)
             self.dtmc_data.append(dtmc)
             self.labels.append(distr)
 
     def __len__(self):
-        # if self.ds_max_size is not None:
-        #     return self.ds_max_size
-        # return math.comb(len(self.dtmc_data), 2)
         return len(self.couples)
 
     def __getitem__(self, idx):
         couple_idx = self.couples[idx]
-        dtmc1 = self.transform(torch.nn.functional.normalize(torch.tensor(self.dtmc_data[couple_idx[0]], dtype=torch.float), p=2, dim=-1))
-        dtmc2 = self.transform(torch.nn.functional.normalize(torch.tensor(self.dtmc_data[couple_idx[1]], dtype=torch.float), p=2, dim=-1))
+        dtmc1 = torch.tensor(self.dtmc_data[couple_idx[0]], dtype=torch.float)
+        dtmc2 = torch.tensor(self.dtmc_data[couple_idx[1]], dtype=torch.float)
         distr1 = torch.tensor(self.labels[couple_idx[0]], dtype=torch.float)
         distr2 = torch.tensor(self.labels[couple_idx[1]], dtype=torch.float)
         label_diff = self.get_label_diff(distr1, distr2, dtmc1, dtmc2)
