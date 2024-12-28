@@ -13,7 +13,6 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 
 class DTMCDataset(Dataset):
-    __metaclass__ = abc.ABCMeta
     def __init__(self, dtmc_folder, label_folder, ds_max_size = None, dtmc_max_size=300):
         self.ds_max_size = ds_max_size
         self.dtmc_data = []
@@ -25,16 +24,15 @@ class DTMCDataset(Dataset):
             self.couples = self.couples[:ds_max_size]
         for file_name in file_list:
             dtmc_path = os.path.join(dtmc_folder, file_name)
-            label_path = os.path.join(label_folder, file_name)
-
             with open(dtmc_path, 'r') as f:
                 dtmc = json.load(f)
-
-            with open(label_path, 'r') as f:
-                distr = json.load(f)
-
             self.dtmc_data.append(dtmc)
-            self.labels.append(distr)
+
+            if label_folder is not None:
+                label_path = os.path.join(label_folder, file_name)
+                with open(label_path, 'r') as f:
+                    distr = json.load(f)
+                self.labels.append(distr)
 
     def __len__(self):
         return len(self.couples)
@@ -48,7 +46,6 @@ class DTMCDataset(Dataset):
         label_diff = self.get_label_diff(distr1, distr2, dtmc1, dtmc2)
         return label_diff
 
-    @abc.abstractmethod
     def get_label_diff(self, label1, label2, dtmc1, dtmc2):
         pass
 
@@ -74,7 +71,12 @@ class HistogramJSDTMCDataset(DTMCDataset):
                             torch.sum(label2 * torch.log(label2 / m + 1e-8)))
         return dtmc1, dtmc2, label_diff
 
-class MixingTimeDTMCDataset(DTMCDataset):
-    def get_label_diff(self, label1, label2, dtmc1, dtmc2):
-        label_diff = label1 - label2
-        return dtmc1, dtmc2, label_diff
+class SpectralDistanceDTMCDataset(DTMCDataset):
+    def __getitem__(self, idx):
+        couple_idx = self.couples[idx]
+        dtmc1 = torch.tensor(self.dtmc_data[couple_idx[0]], dtype=torch.float)
+        dtmc2 = torch.tensor(self.dtmc_data[couple_idx[1]], dtype=torch.float)
+        eigvals_m1 = torch.linalg.eig(dtmc1)
+        eigvals_m2 = torch.linalg.eig(dtmc2)
+        label = torch.linalg.norm(eigvals_m1.eigenvalues - eigvals_m2.eigenvalues)
+        return dtmc1, dtmc2, label

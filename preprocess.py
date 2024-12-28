@@ -38,7 +38,23 @@ def preprocess_distributions(dtmc_folder, label_folder, processed_folder, dtmc_m
             json.dump(distr.tolist(), f)
 
 
+# def preprocess_eigenvalues(dtmc_folder, label_folder, processed_folder):
+#     processed_label_folder = os.path.join(processed_folder, 'eigvals')
+#     os.makedirs(processed_label_folder, exist_ok=True)
+#     file_list = sorted(os.listdir(label_folder), key=lambda x: int(x.split('.')[0]))
+#     for file_name in file_list:
+#         dtmc_path = os.path.join(dtmc_folder, file_name)
+#
+#         with open(dtmc_path, 'r') as f:
+#             dtmc_raw = json.load(f)['dtmc']
+#         dtmc = np.array(dtmc_raw, dtype=float)
+#         eigen_values = np.linalg.eigvals(dtmc)
+#         with open(os.path.join(processed_label_folder, file_name), 'w') as f:
+#             json.dump(eigen_values.tolist(), f)
+
+
 if __name__ == '__main__':
-    base_folder = 'data/only32'
+    base_folder = 'data/max100'
     preprocess_distributions(f'{base_folder}/raw/dtmcs', f'{base_folder}/raw/labels',
-                             f'{base_folder}/ready',32)
+                             f'{base_folder}/ready',100)
+    # preprocess_eigenvalues(f'{base_folder}/raw/dtmcs', f'{base_folder}/raw/labels',f'{base_folder}/ready')

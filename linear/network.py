@@ -48,16 +48,17 @@ class SiameseNetwork(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x1, x2, y = batch
-        encoded_distance = self(x1, x2)
-        loss = self.contrastive_loss(encoded_distance, y)
+        distances = self(x1, x2)
+        # loss = self.contrastive_loss(distances, y)
+        loss = distances.mean()
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x1, x2, y = batch
         distances = self(x1, x2)
-        loss = self.contrastive_loss(distances, y)
-        # loss = distances.mean()
+        # loss = self.contrastive_loss(distances, y)
+        loss = distances.mean()
         self.log("val_loss", loss)
         return loss
 
@@ -67,7 +68,8 @@ class SiameseNetwork(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         x1, x2, y = batch
         distances = self(x1, x2)
-        loss = self.contrastive_loss(distances, y)
+        # loss = self.contrastive_loss(distances, y)
+        loss = distances.mean()
         self.log("test_loss", loss)
         return loss
 

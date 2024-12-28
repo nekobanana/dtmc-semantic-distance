@@ -6,13 +6,13 @@ import torchvision
 from torch.utils.data import random_split
 from torchvision import transforms
 
-from linear.dataset import HistogramTotalVarDTMCDataset, HistogramJSDTMCDataset, MixingTimeDTMCDataset
+from linear.dataset import HistogramTotalVarDTMCDataset, HistogramJSDTMCDataset, SpectralDistanceDTMCDataset
 
 
 class LabelType(Enum):
     HISTOGRAM_JS = auto()
     HISTOGRAM_TOTAL_VAR = auto()
-    MIXING_TIME = auto()
+    SPECTRAL_DISTANCE = auto()
 
 
 class DTMCDataLoader(pl.LightningModule):
@@ -39,8 +39,8 @@ class DTMCDataLoader(pl.LightningModule):
                 dataset = HistogramTotalVarDTMCDataset(dtmc_folder, label_folder, ds_max_size=ds_size, dtmc_max_size=dtmc_max_size)
             case LabelType.HISTOGRAM_JS:
                 dataset = HistogramJSDTMCDataset(dtmc_folder, label_folder, ds_max_size=ds_size, dtmc_max_size=dtmc_max_size)
-            case LabelType.MIXING_TIME:
-                dataset = MixingTimeDTMCDataset(dtmc_folder, label_folder, ds_max_size=ds_size, dtmc_max_size=dtmc_max_size)
+            case LabelType.SPECTRAL_DISTANCE:
+                dataset = SpectralDistanceDTMCDataset(dtmc_folder, label_folder, ds_max_size=ds_size, dtmc_max_size=dtmc_max_size)
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(dataset, [self.train_size, self.val_size, self.test_size])
 
     def train_dataloader(self):
