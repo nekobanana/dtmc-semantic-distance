@@ -1,9 +1,0 @@
-{
-  "samplingMethod": "perfect_sampling",
-  "randomMethod": "single_random",
-  "statisticalTestConfig": {
-    "confidence": 0.95,
-    "error": 0.01,
-    "statisticalTestType": "ZTest"
-  }
-}

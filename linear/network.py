@@ -22,11 +22,22 @@ class SiameseNetworkEncoder(pl.LightningModule):
         return x
 
 class SiameseNetwork(pl.LightningModule):
-    def __init__(self, max_dtmc_size, lr=0.001, margin=1.0):
+    def __init__(self, max_dtmc_size, lr=0.001, margin=1.0, dl_hparams=None):
         super().__init__()
         input_size = max_dtmc_size * max_dtmc_size
         hidden_size = int(input_size * 1.8)
-        self.save_hyperparameters(input_size, hidden_size)
+        self.loss_fn = self.mse_loss
+        hparams = {
+            "max_dtmc_size": max_dtmc_size,
+            "lr": lr,
+            "margin": margin,
+            "input_size": input_size,
+            "hidden_size": hidden_size,
+            "loss_fn": self.loss_fn.__name__
+        }
+        if dl_hparams is not None:
+            hparams.update(dl_hparams)
+        self.save_hyperparameters(hparams)
         self.encoder = SiameseNetworkEncoder(input_size, hidden_size)
         self.lr = lr
         self.margin = margin
@@ -36,29 +47,25 @@ class SiameseNetwork(pl.LightningModule):
         encoded_x2 = self.encoder(x2.reshape(x2.shape[0], 1, -1).squeeze(1))
         return torch.norm(encoded_x1 - encoded_x2, dim=-1, p=1)
 
-    # def contrastive_loss(self, distance, label):
-    #     loss_same = (torch.tensor(1, device="cuda").repeat(distance.shape) - label) * torch.pow(distance, 2)
-    #     loss_diff = label * torch.pow(torch.clamp(self.margin - distance, min=0.0), 2)
-    #     return torch.mean(loss_same + loss_diff)
-
     def contrastive_loss(self, distance, label):
         loss_same = (1 - label) * (distance ** 2)
         loss_diff = label * (torch.clamp(self.margin - distance, min=0.0) ** 2)
         return torch.mean(loss_same + loss_diff)
 
+    def mse_loss(self, distance, label):
+        return F.mse_loss(distance, label)
+
     def training_step(self, batch, batch_idx):
-        x1, x2, y = batch
-        distances = self(x1, x2)
-        # loss = self.contrastive_loss(distances, y)
-        loss = distances.mean()
+        dtmc1, dtmc2, label = batch
+        distance = self(dtmc1, dtmc2)
+        loss = self.loss_fn(distance, label)
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x1, x2, y = batch
-        distances = self(x1, x2)
-        # loss = self.contrastive_loss(distances, y)
-        loss = distances.mean()
+        dtmc1, dtmc2, label = batch
+        distance = self(dtmc1, dtmc2)
+        loss = self.loss_fn(distance, label)
         self.log("val_loss", loss)
         return loss
 
@@ -66,10 +73,9 @@ class SiameseNetwork(pl.LightningModule):
     #     print(f'val_loss = {self.val_loss_acc / }')
 
     def test_step(self, batch, batch_idx):
-        x1, x2, y = batch
-        distances = self(x1, x2)
-        # loss = self.contrastive_loss(distances, y)
-        loss = distances.mean()
+        dtmc1, dtmc2, label = batch
+        distance = self(dtmc1, dtmc2)
+        loss = self.loss_fn(distance, label)
         self.log("test_loss", loss)
         return loss
 

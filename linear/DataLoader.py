@@ -2,7 +2,6 @@ from enum import Enum, auto
 
 import pytorch_lightning as pl
 import torch
-import torchvision
 from torch.utils.data import random_split
 from torchvision import transforms
 
@@ -15,7 +14,7 @@ class LabelType(Enum):
     SPECTRAL_DISTANCE = auto()
 
 
-class DTMCDataLoader(pl.LightningModule):
+class DTMCDataLoader(pl.LightningDataModule):
     def __init__(self, dtmc_folder, label_folder, label_type: LabelType, dtmc_max_size=300, ds_size = None,
                  train_size = 0.8, val_size = 0.1, test_size = 0.1, batch_size = 32, seed = 42,
                  num_workers = None):
@@ -31,16 +30,33 @@ class DTMCDataLoader(pl.LightningModule):
         self.seed = seed
         self.dataset_size = ds_size
         self.num_workers = num_workers
+        self.train_dataset, self.val_dataset, self.test_dataset = None, None, None
         torch.manual_seed(self.seed)
-        self.save_hyperparameters(label_type, train_size, val_size, test_size, batch_size, seed)
-        assert(train_size + val_size + test_size == 1)
+        self.h_params = {
+            'dtmc_folder': self.dtmc_folder,
+            'label_folder': self.label_folder,
+            'label_type': self.label_type,
+            'dtmc_max_size': self.dtmc_max_size,
+            'ds_size': self.dataset_size,
+            'train_size': self.train_size,
+            'val_size': self.val_size,
+            'test_size': self.test_size,
+            'batch_size': self.batch_size,
+            'seed': self.seed,
+            'num_workers': self.num_workers
+        }
+        assert(self.train_size + self.val_size + self.test_size == 1)
         match self.label_type:
             case LabelType.HISTOGRAM_TOTAL_VAR:
-                dataset = HistogramTotalVarDTMCDataset(dtmc_folder, label_folder, ds_max_size=ds_size, dtmc_max_size=dtmc_max_size)
+                dataset = HistogramTotalVarDTMCDataset(self.dtmc_folder, self.label_folder, ds_max_size=self.dataset_size,
+                                                       dtmc_max_size=self.dtmc_max_size)
             case LabelType.HISTOGRAM_JS:
-                dataset = HistogramJSDTMCDataset(dtmc_folder, label_folder, ds_max_size=ds_size, dtmc_max_size=dtmc_max_size)
+                dataset = HistogramJSDTMCDataset(self.dtmc_folder, self.label_folder, ds_max_size=self.dataset_size,
+                                                 dtmc_max_size=self.dtmc_max_size)
             case LabelType.SPECTRAL_DISTANCE:
-                dataset = SpectralDistanceDTMCDataset(dtmc_folder, label_folder, ds_max_size=ds_size, dtmc_max_size=dtmc_max_size)
+                dataset = SpectralDistanceDTMCDataset(self.dtmc_folder, self.label_folder, ds_max_size=self.dataset_size,
+                                                      dtmc_max_size=self.dtmc_max_size)
+
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(dataset, [self.train_size, self.val_size, self.test_size])
 
     def train_dataloader(self):
