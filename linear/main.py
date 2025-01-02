@@ -13,11 +13,11 @@ from linear.network import SiameseNetwork
 torch.set_float32_matmul_precision('high')
 
 def main():
-    base_folder = '../data/only32'
+    base_folder = '../data/max32'
     dtmc_folder = f'{base_folder}/ready/dtmcs'
     label_folder = f'{base_folder}/ready/labels'
 
-    label_type = LabelType.SPECTRAL_DISTANCE
+    label_type = LabelType.HISTOGRAM_TOTAL_VAR
 
     name = f'{str(label_type).lower().split('.')[-1]}_{base_folder.split("/")[-1]}'
     logger = TensorBoardLogger("lightning_logs", name=name)
@@ -37,7 +37,7 @@ def main():
     trainer.fit(model=model, train_dataloaders=dataloader.train_dataloader(), val_dataloaders=dataloader.val_dataloader())
     test_results = trainer.test(model=model, dataloaders=dataloader.test_dataloader())
     print(test_results)
-    torch.save(model.state_dict(), 'save/model.pt')
+    # torch.save(model.state_dict(), 'save/model.pt')
 
 if __name__ == '__main__':
     set_start_method('spawn')

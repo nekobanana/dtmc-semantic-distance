@@ -31,7 +31,10 @@ def preprocess_distributions(dtmc_folder, label_folder, processed_folder, dtmc_m
         assert dtmc_n == dtmc.shape[1]
         pad_before = int((dtmc_max_size - dtmc_n) / 2)
         pad_after = dtmc_max_size - dtmc_n - pad_before
-        dtmc = np.pad(dtmc, (pad_before, pad_after), mode='constant', constant_values=0)
+        try:
+            dtmc = np.pad(dtmc, (pad_before, pad_after), mode='constant', constant_values=0)
+        except ValueError:
+            print(f'Error for file {file_name}')
         with open(os.path.join(processed_dtmc_folder, file_name), 'w') as f:
             json.dump(dtmc.tolist(), f)
         with open(os.path.join(processed_label_folder, file_name), 'w') as f:
@@ -54,7 +57,7 @@ def preprocess_distributions(dtmc_folder, label_folder, processed_folder, dtmc_m
 
 
 if __name__ == '__main__':
-    base_folder = 'data/max100'
+    base_folder = 'data/max32'
     preprocess_distributions(f'{base_folder}/raw/dtmcs', f'{base_folder}/raw/labels',
-                             f'{base_folder}/ready',100)
+                             f'{base_folder}/ready',32)
     # preprocess_eigenvalues(f'{base_folder}/raw/dtmcs', f'{base_folder}/raw/labels',f'{base_folder}/ready')
