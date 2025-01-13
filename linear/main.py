@@ -6,7 +6,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from linear.DataLoader import DTMCDataLoader, LabelType
+from linear.dataloader import DTMCDataLoader, LabelType
 from linear.network import SiameseNetwork
 
 # torch.set_float32_matmul_precision('medium')
