@@ -45,7 +45,7 @@ class SiameseNetwork(pl.LightningModule):
     def forward(self, x1, x2):
         encoded_x1 = self.encoder(x1.reshape(x1.shape[0], 1, -1).squeeze(1))
         encoded_x2 = self.encoder(x2.reshape(x2.shape[0], 1, -1).squeeze(1))
-        return torch.norm(encoded_x1 - encoded_x2, dim=-1, p=1)
+        return torch.norm(encoded_x1 - encoded_x2, dim=-1, p=2)
 
     def contrastive_loss(self, distance, label):
         loss_same = (1 - label) * (distance ** 2)
