@@ -57,7 +57,7 @@ def preprocess_distributions(dtmc_folder, label_folder, processed_folder, dtmc_m
 
 
 if __name__ == '__main__':
-    base_folder = 'data/max32'
+    base_folder = 'data/max50_no_biased'
     preprocess_distributions(f'{base_folder}/raw/dtmcs', f'{base_folder}/raw/labels',
-                             f'{base_folder}/ready',32)
+                             f'{base_folder}/ready',50)
     # preprocess_eigenvalues(f'{base_folder}/raw/dtmcs', f'{base_folder}/raw/labels',f'{base_folder}/ready')

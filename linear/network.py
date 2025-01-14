@@ -26,7 +26,7 @@ class SiameseNetwork(pl.LightningModule):
         super().__init__()
         input_size = max_dtmc_size * max_dtmc_size
         hidden_size = int(input_size * 1.8)
-        self.loss_fn = self.mse_loss
+        self.loss_fn = self.contrastive_loss
         hparams = {
             "max_dtmc_size": max_dtmc_size,
             "lr": lr,
@@ -42,10 +42,12 @@ class SiameseNetwork(pl.LightningModule):
         self.lr = lr
         self.margin = margin
 
+        self.test_output = []
+
     def forward(self, x1, x2):
         encoded_x1 = self.encoder(x1.reshape(x1.shape[0], 1, -1).squeeze(1))
         encoded_x2 = self.encoder(x2.reshape(x2.shape[0], 1, -1).squeeze(1))
-        return torch.norm(encoded_x1 - encoded_x2, dim=-1, p=2)
+        return torch.linalg.vector_norm(encoded_x1 - encoded_x2, dim=1, ord=2)
 
     def contrastive_loss(self, distance, label):
         loss_same = (1 - label) * (distance ** 2)
@@ -59,14 +61,16 @@ class SiameseNetwork(pl.LightningModule):
         dtmc1, dtmc2, label = batch
         distance = self(dtmc1, dtmc2)
         loss = self.loss_fn(distance, label)
-        self.log("train_loss", loss)
+        self.log("train/loss", loss)
+        self.log("train/distance", torch.mean(torch.abs(distance - label)))
         return loss
 
     def validation_step(self, batch, batch_idx):
         dtmc1, dtmc2, label = batch
         distance = self(dtmc1, dtmc2)
         loss = self.loss_fn(distance, label)
-        self.log("val_loss", loss)
+        self.log("val/loss", loss)
+        self.log("val/distance", torch.mean(torch.abs(distance - label)))
         return loss
 
     # def on_validation_epoch_end(self) -> None:
@@ -76,8 +80,19 @@ class SiameseNetwork(pl.LightningModule):
         dtmc1, dtmc2, label = batch
         distance = self(dtmc1, dtmc2)
         loss = self.loss_fn(distance, label)
-        self.log("test_loss", loss)
+        self.log("test/loss", loss)
+        self.log("test/distance", torch.mean(torch.abs(distance - label)))
+        for b in batch:
+            self.test_output.append((label, distance, torch.abs(distance - label)))
         return loss
+
+    def on_test_end(self) -> None:
+        global_diff_list = []
+        for r in self.test_output:
+            for label, model, difference in zip(*r):
+                print(f'Real distance: {label:.4f}, model distance: {model:.4f}, diff: {difference:.4f}')
+                global_diff_list.append(difference)
+        print(f'Difference avg: {sum(global_diff_list) / len(global_diff_list):.4f}')
 
     def configure_optimizers(self):
         return optim.Adam(self.parameters(), lr=self.lr)

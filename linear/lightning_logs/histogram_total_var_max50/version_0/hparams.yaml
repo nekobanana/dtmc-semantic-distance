@@ -1,0 +1,17 @@
+batch_size: 8
+ds_size: 10000
+dtmc_folder: ../data/max50/ready/dtmcs
+dtmc_max_size: 50
+hidden_size: 4500
+input_size: 2500
+label_folder: ../data/max50/ready/labels
+label_type: HISTOGRAM_TOTAL_VAR
+loss_fn: mse_loss
+lr: 0.001
+margin: 1.0
+max_dtmc_size: 50
+num_workers: 8
+seed: 2
+test_size: 0.1
+train_size: 0.8
+val_size: 0.1

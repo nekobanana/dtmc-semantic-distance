@@ -1,21 +1,33 @@
 import itertools
 import json
 import os
+import random
 
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset
 
 class DTMCDataset(Dataset):
-    def __init__(self, dtmc_folder, label_folder, ds_max_size = None, dtmc_max_size=300):
+    def __init__(self, dtmc_folder, label_folder, ds_max_size = None, ds_same_DTMC_fraction = 0.2, dtmc_max_size=300):
         self.ds_max_size = ds_max_size
         self.dtmc_data = []
         self.labels = []
         self.dtmc_max_size = dtmc_max_size
         file_list = sorted(os.listdir(dtmc_folder), key=lambda x: int(x.split('.')[0]))
-        self.couples = list(itertools.combinations(range(len(file_list)), 2))
+        different_couples = list(itertools.combinations(range(len(file_list)), 2))
         if ds_max_size is not None:
-            self.couples = self.couples[:ds_max_size]
+            different_DTMC_size = int(ds_max_size * (1 - ds_same_DTMC_fraction))
+            same_DTMC_size = ds_max_size - different_DTMC_size
+        else:
+            different_DTMC_size = len(different_couples)
+            same_DTMC_size = int(len(different_couples) / (1 - ds_same_DTMC_fraction) * ds_same_DTMC_fraction)
+
+        different_couples = random.sample(different_couples, different_DTMC_size)
+        same_DTMC_indeces = random.sample(range(len(file_list)), same_DTMC_size)
+        same_DTMC_couples = [(i, i) for i in same_DTMC_indeces]
+        self.couples = different_couples + same_DTMC_couples
+        # random.shuffle(self.couples)
+
         for file_name in file_list:
             dtmc_path = os.path.join(dtmc_folder, file_name)
             with open(dtmc_path, 'r') as f:
@@ -34,6 +46,8 @@ class DTMCDataset(Dataset):
     def __getitem__(self, idx):
         couple_idx = self.couples[idx]
         dtmc1 = torch.tensor(self.dtmc_data[couple_idx[0]], dtype=torch.float)
+        if couple_idx[0] == couple_idx[1]:
+            return dtmc1, dtmc1[:], torch.tensor(0.)
         dtmc2 = torch.tensor(self.dtmc_data[couple_idx[1]], dtype=torch.float)
         distr1 = torch.tensor(self.labels[couple_idx[0]], dtype=torch.float)
         distr2 = torch.tensor(self.labels[couple_idx[1]], dtype=torch.float)
@@ -72,5 +86,5 @@ class SpectralDistanceDTMCDataset(DTMCDataset):
         dtmc2 = torch.tensor(self.dtmc_data[couple_idx[1]], dtype=torch.float)
         eigvals_m1 = torch.linalg.eig(dtmc1)
         eigvals_m2 = torch.linalg.eig(dtmc2)
-        label = torch.linalg.norm(eigvals_m1.eigenvalues - eigvals_m2.eigenvalues)
+        label = torch.linalg.vector_norm(eigvals_m1.eigenvalues - eigvals_m2.eigenvalues, ord=2)
         return dtmc1, dtmc2, label
