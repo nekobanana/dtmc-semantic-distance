@@ -58,7 +58,7 @@ class DTMCDataLoader(pl.LightningDataModule):
                 dataset = HistogramJSDTMCDataset(self.dtmc_folder, self.label_folder, ds_max_size=self.dataset_size,
                                                  dtmc_max_size=self.dtmc_max_size, ds_same_DTMC_fraction=self.ds_same_dtmc_fraction)
             case LabelType.SPECTRAL_DISTANCE:
-                dataset = SpectralDistanceDTMCDataset(self.dtmc_folder, self.label_folder, ds_max_size=self.dataset_size,
+                dataset = SpectralDistanceDTMCDataset(self.dtmc_folder, None, ds_max_size=self.dataset_size,
                                                       dtmc_max_size=self.dtmc_max_size, ds_same_DTMC_fraction=self.ds_same_dtmc_fraction)
             case LabelType.EXAMPLE_DATASET:
                 dataset = ExampleDataset('../test/markov_chain_results.json', dtmc_max_size=self.dtmc_max_size,)

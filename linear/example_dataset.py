@@ -46,13 +46,16 @@ class ExampleDataset(Dataset):
                                      mode='constant', value=0)
         m2 = torch.nn.functional.pad(m2, (0, self.dtmc_max_size - original_size, 0, self.dtmc_max_size - original_size),
                                      mode='constant', value=0)
+        eigvals_m1 = torch.linalg.eig(m1)
+        eigvals_m2 = torch.linalg.eig(m2)
+        spectral_distance = torch.linalg.vector_norm(eigvals_m1.eigenvalues - eigvals_m2.eigenvalues, ord=2)
 
         # Flatten the padded matrices
         m1 = m1.flatten()
         m2 = m2.flatten()
 
         # Extract spectral distance
-        spectral_distance = torch.tensor(sample['distances']['spectral'], dtype=torch.float32)
+        # spectral_distance = torch.tensor(sample['distances']['spectral'], dtype=torch.float32)
 
         return m1, m2, spectral_distance
 

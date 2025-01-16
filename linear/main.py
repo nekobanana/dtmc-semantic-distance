@@ -13,15 +13,15 @@ from linear.network import SiameseNetwork
 torch.set_float32_matmul_precision('high')
 
 def main():
-    base_folder = '../data/aaaa'
+    base_folder = '../data/only50_random_30-50full'
     dtmc_folder = f'{base_folder}/ready/dtmcs'
     label_folder = f'{base_folder}/ready/labels'
     max_dtmc_size = 50
 
-    label_type = LabelType.EXAMPLE_DATASET
+    label_type = LabelType.SPECTRAL_DISTANCE
 
-    name = f'test_new_dataset'
-    # name = f'{str(label_type).lower().split('.')[-1]}_{base_folder.split("/")[-1]}'
+    # name = f'test_new_ds_modified'
+    name = f'{str(label_type).lower().split('.')[-1]}_{base_folder.split("/")[-1]}'
     logger = TensorBoardLogger("lightning_logs", name=name)
 
     dataloader = DTMCDataLoader(dtmc_folder, label_folder, label_type=label_type,
