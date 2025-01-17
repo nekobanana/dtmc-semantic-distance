@@ -5,8 +5,8 @@ import torch
 from torch.utils.data import random_split
 from torchvision import transforms
 
-from linear.dataset import HistogramTotalVarDTMCDataset, HistogramJSDTMCDataset, SpectralDistanceDTMCDataset
-from linear.example_dataset import ExampleDataset
+from dataset import HistogramTotalVarDTMCDataset, HistogramJSDTMCDataset, SpectralDistanceDTMCDataset
+from example_dataset import ExampleDataset
 
 
 class LabelType(Enum):

@@ -1,0 +1,20 @@
+{
+  "seed": null,
+  "dtmcGeneratorConfigs": [
+    {
+      "statesNumberDistribution": {
+        "n": 50,
+        "distributionType": "single_value"
+      },
+      "edgesNumberDistribution": {
+        "min": 49,
+	"max": 50,
+        "distributionType": "uniform"
+      },
+      "edgesLocalityDistribution": null,
+      "selfLoopValue": null,
+      "connectSCCs": false,
+      "numberOfDTMCs": 1000
+    }
+  ]
+}

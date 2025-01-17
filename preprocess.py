@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -66,7 +67,8 @@ def preprocess_distributions(dtmc_folder, label_folder, processed_folder, dtmc_m
 
 
 if __name__ == '__main__':
-    base_folder = 'data/only50_random_30-50full'
+    base_folder = sys.argv[1]
+    # base_folder = 'data/only50_random_30-50_2full'
     preprocess_distributions(f'{base_folder}/raw/dtmcs', f'{base_folder}/raw/labels',
                              f'{base_folder}/ready',50,
                              process_labels=False)

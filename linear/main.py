@@ -1,4 +1,5 @@
 import os
+import sys
 from multiprocessing import set_start_method
 from pytorch_lightning.loggers import TensorBoardLogger
 
@@ -6,14 +7,14 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from linear.dataloader import DTMCDataLoader, LabelType
-from linear.network import SiameseNetwork
+from dataloader import DTMCDataLoader, LabelType
+from network import SiameseNetwork
 
 # torch.set_float32_matmul_precision('medium')
 torch.set_float32_matmul_precision('high')
 
-def main():
-    base_folder = '../data/only50_random_30-50full'
+def main(base_folder):
+    # base_folder = '../data/only50_random_30-50_2full'
     dtmc_folder = f'{base_folder}/ready/dtmcs'
     label_folder = f'{base_folder}/ready/labels'
     max_dtmc_size = 50
@@ -40,4 +41,4 @@ def main():
 
 if __name__ == '__main__':
     set_start_method('spawn')
-    main()
+    main(sys.argv[1])
