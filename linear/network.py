@@ -22,7 +22,7 @@ class SiameseNetworkEncoder(pl.LightningModule):
         return x
 
 class SiameseNetwork(pl.LightningModule):
-    def __init__(self, max_dtmc_size, lr=0.001, margin=1.0, dl_hparams=None):
+    def __init__(self, max_dtmc_size, lr=0.001, margin=1.0, dl_hparams=None, checkpoint_name = None):
         super().__init__()
         input_size = max_dtmc_size * max_dtmc_size
         hidden_size = int(input_size * 1.8)
@@ -33,7 +33,8 @@ class SiameseNetwork(pl.LightningModule):
             "margin": margin,
             "input_size": input_size,
             "hidden_size": hidden_size,
-            "loss_fn": self.loss_fn.__name__
+            "loss_fn": self.loss_fn.__name__,
+            "checkpoint_name": checkpoint_name
         }
         if dl_hparams is not None:
             hparams.update(dl_hparams)

@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from multiprocessing import set_start_method
 from pytorch_lightning.loggers import TensorBoardLogger
 
@@ -10,35 +11,120 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from dataloader import DTMCDataLoader, LabelType
 from network import SiameseNetwork
 
-# torch.set_float32_matmul_precision('medium')
 torch.set_float32_matmul_precision('high')
 
+def save_config(config, path):
+    with open(path, 'w') as f:
+        json.dump(config, f, indent=4, default=str)
+
+def load_config(path):
+    with open(path, 'r') as f:
+        return json.load(f)
+
+def get_versioned_dir(base_dir, name):
+    version = 0
+    while os.path.exists(os.path.join(base_dir, f"{name}/version_{version}")):
+        version += 1
+    return os.path.join(base_dir, f"{name}/version_{version}")
+
 def main(base_folder):
-    base_folder = '../data/max50_random'
+    # base_folder = '../data/max50_random'
     dtmc_folder = f'{base_folder}/ready/dtmcs'
     label_folder = f'{base_folder}/ready/labels'
     max_dtmc_size = 50
-
     label_type = LabelType.HISTOGRAM_JS
 
-    # name = f'test_js'
-    name = f'{str(label_type).lower().split('.')[-1]}_{base_folder.split("/")[-1]}'
+    lr = 0.001
+    max_epochs = 100
+
+    name = f'{str(label_type).lower().split(".")[-1]}_{base_folder.split("/")[-1]}'
     logger = TensorBoardLogger("lightning_logs", name=name)
+
+    checkpoint_dir = get_versioned_dir("checkpoints", name)
+    os.makedirs(checkpoint_dir, exist_ok=True)
 
     dataloader = DTMCDataLoader(dtmc_folder, label_folder, label_type=label_type,
                                 dtmc_max_size=max_dtmc_size, ds_same_dtmc_fraction=0.2,
-                                ds_size=1000, batch_size=1000, seed=2, num_workers=8)
+                                ds_size=5000, batch_size=1024, seed=2, num_workers=8)
+    model = SiameseNetwork(max_dtmc_size=max_dtmc_size, lr=lr, dl_hparams=dataloader.h_params)
+    checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir, save_top_k=2, monitor="val/loss")
+    trainer = pl.Trainer(max_epochs=max_epochs, accelerator="gpu", log_every_n_steps=1, logger=logger, callbacks=[checkpoint_callback])
 
-    model = SiameseNetwork(max_dtmc_size=max_dtmc_size, lr=0.001, dl_hparams=dataloader.h_params)
+    config = {
+        "name": name,
+        "base_folder": base_folder,
+        "dataloader_params": dataloader.h_params,
+        "model_params": {"max_dtmc_size": max_dtmc_size, "lr": lr},
+        "trainer_params": {"max_epochs": max_epochs, "accelerator": "gpu", "log_every_n_steps": 1}
+    }
+    save_config(config, os.path.join(checkpoint_dir, "config.json"))
 
-    checkpoint_callback = ModelCheckpoint(dirpath=f"checkpoints/{name}", save_top_k=2, monitor="val/loss")
-    trainer = pl.Trainer(max_epochs=50, accelerator="gpu", log_every_n_steps=1, logger=logger, callbacks=[checkpoint_callback])
-    # trainer = pl.Trainer(max_epochs=1000, accelerator="gpu", gradient_clip_val=1.0, log_every_n_steps=1)
     trainer.fit(model=model, train_dataloaders=dataloader.train_dataloader(), val_dataloaders=dataloader.val_dataloader())
+
     test_results = trainer.test(model=model, dataloaders=dataloader.test_dataloader())
     print(test_results)
-    # torch.save(model.state_dict(), 'save/model.pt')
+
+def test_from_checkpoint(checkpoint_path, test_folder):
+    config_path = os.path.join(os.path.dirname(checkpoint_path), "config.json")
+    config = load_config(config_path)
+
+    config["dataloader_params"]["dtmc_folder"] = os.path.join(test_folder, "dtmcs")
+    config["dataloader_params"]["label_folder"] = os.path.join(test_folder, "labels")
+    config["dataloader_params"]["train_size"] = 0
+    config["dataloader_params"]["val_size"] = 0
+    config["dataloader_params"]["test_size"] = 1
+    config["dataloader_params"]["label_type"] = LabelType[config["dataloader_params"]["label_type"].split(".")[-1]]
+
+    dataloader = DTMCDataLoader(**config["dataloader_params"])
+    model = SiameseNetwork(**config["model_params"])
+    trainer = pl.Trainer(**config["trainer_params"])
+    test_results = trainer.test(model=model, dataloaders=dataloader.test_dataloader(), ckpt_path=checkpoint_path)
+    print(test_results)
+
+
+def get_logger_from_config(config):
+    name = config["name"]
+    logger = TensorBoardLogger("lightning_logs", name=name)
+    return logger
+
 
 if __name__ == '__main__':
     set_start_method('spawn')
-    main(sys.argv[1])
+
+    mode = sys.argv[1]
+    if mode == "train":
+        main(sys.argv[2])
+    elif mode == "resume":
+        checkpoint_path = sys.argv[2]
+        config_path = os.path.join(os.path.dirname(checkpoint_path), "config.json")
+        config = load_config(config_path)
+        logger = get_logger_from_config(config)
+        dataloader = DTMCDataLoader(**config["dataloader_params"])
+        model = SiameseNetwork(**config["model_params"], dl_hparams=dataloader.h_params)
+        trainer = pl.Trainer(logger=logger, **config["trainer_params"])
+
+        trainer.fit(model=model, ckpt_path=checkpoint_path)
+    elif mode == "test":
+        checkpoint_path = sys.argv[2]
+        test_folder = sys.argv[3]
+        config_path = os.path.join(os.path.dirname(checkpoint_path), "config.json")
+        config = load_config(config_path)
+        logger = get_logger_from_config(config)
+        config["dataloader_params"]["dtmc_folder"] = os.path.join(test_folder, "dtmcs")
+        config["dataloader_params"]["label_folder"] = os.path.join(test_folder, "labels")
+        config["dataloader_params"]["train_size"] = 0
+        config["dataloader_params"]["val_size"] = 0
+        config["dataloader_params"]["test_size"] = 1
+        config["dataloader_params"]["label_type"] = LabelType[config["dataloader_params"]["label_type"].split(".")[-1]]
+
+        dataloader = DTMCDataLoader(**config["dataloader_params"])
+        model = SiameseNetwork(**config["model_params"], checkpoint_name=checkpoint_path, dl_hparams=dataloader.h_params)
+
+        trainer = pl.Trainer(logger=logger, **config["trainer_params"])
+        test_results = trainer.test(model=model, dataloaders=dataloader.test_dataloader(), ckpt_path=checkpoint_path)
+        print(test_results)
+    else:
+        print("Usage:")
+        print("  train <base_folder_path>")
+        print("  resume <checkpoint_path>")
+        print("  test <checkpoint_path> <test_folder>")
