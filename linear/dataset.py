@@ -74,9 +74,14 @@ class HistogramTotalVarDTMCDataset(DTMCDataset):
 class HistogramJSDTMCDataset(DTMCDataset):
     def get_label_diff(self, label1, label2, dtmc1, dtmc2):
         label1, label2 = get_label_diff_preparation(label1, label2)
+        eps = 1e-8  # Piccola costante per evitare problemi con zeri
+        label1 = label1 + eps
+        label2 = label2 + eps
+        label1 = label1 / label1.sum()
+        label2 = label2 / label2.sum()
         m = 0.5 * (label1 + label2)
-        label_diff = 0.5 * (torch.sum(label1 * torch.log(label1 / m + 1e-8)) +
-                            torch.sum(label2 * torch.log(label2 / m + 1e-8)))
+        label_diff = 0.5 * (torch.sum(label1 * torch.log(label1 / m)) +
+                            torch.sum(label2 * torch.log(label2 / m)))
         return dtmc1, dtmc2, label_diff
 
 class SpectralDistanceDTMCDataset(DTMCDataset):

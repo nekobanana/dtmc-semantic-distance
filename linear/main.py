@@ -14,14 +14,14 @@ from network import SiameseNetwork
 torch.set_float32_matmul_precision('high')
 
 def main(base_folder):
-    # base_folder = '../data/only50_random_30-50_2full'
+    base_folder = '../data/max50_random'
     dtmc_folder = f'{base_folder}/ready/dtmcs'
     label_folder = f'{base_folder}/ready/labels'
     max_dtmc_size = 50
 
-    label_type = LabelType.SPECTRAL_DISTANCE
+    label_type = LabelType.HISTOGRAM_JS
 
-    # name = f'test_new_ds_modified'
+    # name = f'test_js'
     name = f'{str(label_type).lower().split('.')[-1]}_{base_folder.split("/")[-1]}'
     logger = TensorBoardLogger("lightning_logs", name=name)
 
