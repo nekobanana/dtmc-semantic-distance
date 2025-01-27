@@ -21,7 +21,8 @@ def load_config(path):
     with open(path, 'r') as f:
         return json.load(f)
 
-def get_versioned_dir(base_dir, name):
+def get_versioned_dir(name):
+    base_dir = "checkpoints"
     version = 0
     while os.path.exists(os.path.join(base_dir, f"{name}/version_{version}")):
         version += 1
@@ -35,17 +36,17 @@ def main(base_folder):
     label_type = LabelType.HISTOGRAM_JS
 
     lr = 0.001
-    max_epochs = 100
+    max_epochs = 500
 
     name = f'{str(label_type).lower().split(".")[-1]}_{base_folder.split("/")[-1]}'
     logger = TensorBoardLogger("lightning_logs", name=name)
 
-    checkpoint_dir = get_versioned_dir("checkpoints", name)
+    checkpoint_dir = get_versioned_dir(name)
     os.makedirs(checkpoint_dir, exist_ok=True)
 
     dataloader = DTMCDataLoader(dtmc_folder, label_folder, label_type=label_type,
-                                dtmc_max_size=max_dtmc_size, ds_same_dtmc_fraction=0.2,
-                                ds_size=5000, batch_size=1024, seed=2, num_workers=8)
+                                dtmc_max_size=max_dtmc_size, ds_same_dtmc_fraction=0.01,
+                                ds_size=100000, batch_size=4096, seed=2, num_workers=8)
     model = SiameseNetwork(max_dtmc_size=max_dtmc_size, lr=lr, dl_hparams=dataloader.h_params)
     checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir, save_top_k=2, monitor="val/loss")
     trainer = pl.Trainer(max_epochs=max_epochs, accelerator="gpu", log_every_n_steps=1, logger=logger, callbacks=[checkpoint_callback])
@@ -63,24 +64,6 @@ def main(base_folder):
 
     test_results = trainer.test(model=model, dataloaders=dataloader.test_dataloader())
     print(test_results)
-
-def test_from_checkpoint(checkpoint_path, test_folder):
-    config_path = os.path.join(os.path.dirname(checkpoint_path), "config.json")
-    config = load_config(config_path)
-
-    config["dataloader_params"]["dtmc_folder"] = os.path.join(test_folder, "dtmcs")
-    config["dataloader_params"]["label_folder"] = os.path.join(test_folder, "labels")
-    config["dataloader_params"]["train_size"] = 0
-    config["dataloader_params"]["val_size"] = 0
-    config["dataloader_params"]["test_size"] = 1
-    config["dataloader_params"]["label_type"] = LabelType[config["dataloader_params"]["label_type"].split(".")[-1]]
-
-    dataloader = DTMCDataLoader(**config["dataloader_params"])
-    model = SiameseNetwork(**config["model_params"])
-    trainer = pl.Trainer(**config["trainer_params"])
-    test_results = trainer.test(model=model, dataloaders=dataloader.test_dataloader(), ckpt_path=checkpoint_path)
-    print(test_results)
-
 
 def get_logger_from_config(config):
     name = config["name"]
@@ -102,7 +85,6 @@ if __name__ == '__main__':
         dataloader = DTMCDataLoader(**config["dataloader_params"])
         model = SiameseNetwork(**config["model_params"], dl_hparams=dataloader.h_params)
         trainer = pl.Trainer(logger=logger, **config["trainer_params"])
-
         trainer.fit(model=model, ckpt_path=checkpoint_path)
     elif mode == "test":
         checkpoint_path = sys.argv[2]
@@ -116,6 +98,8 @@ if __name__ == '__main__':
         config["dataloader_params"]["val_size"] = 0
         config["dataloader_params"]["test_size"] = 1
         config["dataloader_params"]["label_type"] = LabelType[config["dataloader_params"]["label_type"].split(".")[-1]]
+        # config["dataloader_params"]["ds_size"] = 5000
+        # config["dataloader_params"]["ds_same_dtmc_fraction"] = 0.2
 
         dataloader = DTMCDataLoader(**config["dataloader_params"])
         model = SiameseNetwork(**config["model_params"], checkpoint_name=checkpoint_path, dl_hparams=dataloader.h_params)

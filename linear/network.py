@@ -1,3 +1,4 @@
+
 import torch
 import pytorch_lightning as pl
 from torch import nn, optim
@@ -81,8 +82,8 @@ class SiameseNetwork(pl.LightningModule):
         dtmc1, dtmc2, label = batch
         distance = self(dtmc1, dtmc2)
         loss = self.loss_fn(distance, label)
-        self.log("test/loss", loss)
-        self.log("test/distance", torch.mean(torch.abs(distance - label)))
+        self.log("test/loss", loss, on_step=False, on_epoch=True, reduce_fx="mean")
+        self.log("test/distance", torch.mean(torch.abs(distance - label)), on_step=False, on_epoch=True, reduce_fx="mean")
         for b in batch:
             self.test_output.append((label, distance, torch.abs(distance - label)))
         return loss
@@ -95,5 +96,7 @@ class SiameseNetwork(pl.LightningModule):
                 global_diff_list.append(difference)
         print(f'Difference avg: {sum(global_diff_list) / len(global_diff_list):.4f}')
 
+
     def configure_optimizers(self):
         return optim.Adam(self.parameters(), lr=self.lr)
+
