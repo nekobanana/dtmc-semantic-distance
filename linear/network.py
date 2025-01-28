@@ -81,20 +81,17 @@ class SiameseNetwork(pl.LightningModule):
         loss = self.loss_fn(distance, label)
         self.log("test/loss", loss, on_step=False, on_epoch=True, reduce_fx="mean")
         self.log("test/distance", torch.mean(torch.abs(distance - label)), on_step=False, on_epoch=True, reduce_fx="mean")
-        self.log("test/distance_rel", torch.mean(torch.abs(distance - label) / label), on_step=False, on_epoch=True, reduce_fx="mean")
         for b in batch:
-            self.test_output.append((label, distance, torch.abs(distance - label), torch.abs(distance - label) / label))
+            self.test_output.append((label, distance, torch.abs(distance - label)))
         return loss
 
     def on_test_end(self) -> None:
         global_diff_list = []
-        global_diff_rel_list = []
         for r in self.test_output:
-            for label, model, difference, difference_rel in zip(*r):
-                print(f'Real distance: {label:.4f}, model distance: {model:.4f}, diff: {difference:.4f}, rel diff: {difference_rel:.4f}')
+            for label, model, difference in zip(*r):
+                print(f'Real distance: {label:.4f}, model distance: {model:.4f}, diff: {difference:.4f}')
                 global_diff_list.append(difference)
-                global_diff_rel_list.append(difference_rel)
-        print(f'Difference avg: {sum(global_diff_list) / len(global_diff_list):.4f}, relative: {sum(global_diff_rel_list) / len(global_diff_rel_list):.4f}')
+        print(f'Difference avg: {sum(global_diff_list) / len(global_diff_list):.4f}')
 
 
     def configure_optimizers(self):
