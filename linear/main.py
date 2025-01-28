@@ -105,7 +105,7 @@ if __name__ == '__main__':
         dataloader = DTMCDataLoader(**config["dataloader_params"])
         model = SiameseNetwork(**config["model_params"], checkpoint_name=checkpoint_path, dl_hparams=dataloader.h_params)
 
-        trainer = pl.Trainer(logger=logger, **config["trainer_params"])
+        trainer = pl.Trainer(logger=logger, **config["trainer_params"], devices=1, num_nodes=1)
         test_results = trainer.test(model=model, dataloaders=dataloader.test_dataloader(), ckpt_path=checkpoint_path)
         print(test_results)
     else:
