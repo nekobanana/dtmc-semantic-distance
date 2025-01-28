@@ -46,7 +46,8 @@ def main(base_folder):
 
     dataloader = DTMCDataLoader(dtmc_folder, label_folder, label_type=label_type,
                                 dtmc_max_size=max_dtmc_size, ds_same_dtmc_fraction=0.01,
-                                ds_size=100000, batch_size=4096, seed=2, num_workers=8)
+                                train_size=0.9, val_size=0.1, test_size=0,
+                                ds_size=100000, batch_size=4096, seed=0, num_workers=8)
     model = SiameseNetwork(max_dtmc_size=max_dtmc_size, lr=lr, dl_hparams=dataloader.h_params)
     checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir, save_top_k=2, monitor="val/loss")
     trainer = pl.Trainer(max_epochs=max_epochs, accelerator="gpu", log_every_n_steps=1, logger=logger, callbacks=[checkpoint_callback])

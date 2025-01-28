@@ -71,5 +71,5 @@ if __name__ == '__main__':
     # base_folder = 'data/only50_random_30-50_2full'
     preprocess_distributions(f'{base_folder}/raw/dtmcs', f'{base_folder}/raw/labels',
                              f'{base_folder}/ready',50,
-                             process_labels=False)
+                             process_labels=True)
     # preprocess_eigenvalues(f'{base_folder}/raw/dtmcs', f'{base_folder}/raw/labels',f'{base_folder}/ready')

@@ -63,16 +63,16 @@ class SiameseNetwork(pl.LightningModule):
         dtmc1, dtmc2, label = batch
         distance = self(dtmc1, dtmc2)
         loss = self.loss_fn(distance, label)
-        self.log("train/loss", loss)
-        self.log("train/distance", torch.mean(torch.abs(distance - label)))
+        self.log("train/loss", loss, on_step=True, on_epoch=True)
+        self.log("train/distance", torch.mean(torch.abs(distance - label)), on_step=True, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         dtmc1, dtmc2, label = batch
         distance = self(dtmc1, dtmc2)
         loss = self.loss_fn(distance, label)
-        self.log("val/loss", loss)
-        self.log("val/distance", torch.mean(torch.abs(distance - label)))
+        self.log("val/loss", loss, on_step=False, on_epoch=True)
+        self.log("val/distance", torch.mean(torch.abs(distance - label)), on_step=False, on_epoch=True)
         return loss
 
     # def on_validation_epoch_end(self) -> None:
