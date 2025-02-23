@@ -4,9 +4,7 @@ import torch.nn.functional as F
 import json
 import os
 from torch.utils.data import Dataset
-import scipy.optimize as opt
 import scipy.stats as stats
-import matplotlib.pyplot as plt
 
 
 class MatrixDataset(Dataset):

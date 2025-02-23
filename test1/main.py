@@ -11,7 +11,6 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from test1.dataset import MatrixDataset
 from test1.network import MLPModel
-import scipy.optimize as opt
 from torch.utils.data import random_split
 
 def main():

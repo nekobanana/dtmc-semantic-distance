@@ -17,9 +17,9 @@ class SiameseNetworkEncoder(pl.LightningModule):
     def forward(self, x):
 
         x = self.linear1(x)
-        x = F.leaky_relu(x, negative_slope=0.01)
+        x = F.relu(x)
         x = self.linear2(x)
-        x = F.leaky_relu(x, negative_slope=0.01)
+        x = F.relu(x)
         return x
 
 class SiameseNetwork(pl.LightningModule):
@@ -27,7 +27,7 @@ class SiameseNetwork(pl.LightningModule):
         super().__init__()
         input_size = max_dtmc_size * max_dtmc_size
         hidden_size = int(input_size * 1.8)
-        self.loss_fn = self.contrastive_loss
+        self.loss_fn = self.mse_loss
         hparams = {
             "max_dtmc_size": max_dtmc_size,
             "lr": lr,
