@@ -15,8 +15,6 @@ class LabelType(Enum):
     SPECTRAL_DISTANCE = auto()
     EXAMPLE_DATASET = auto()
 
-# TODO: test non verrrà mai usato insieme a train: fai in modo di separare DTMC uguali e diverse
-
 class DTMCDataLoader(pl.LightningDataModule):
     def __init__(self, dtmc_folder, label_folder, label_type: LabelType, dtmc_max_size=50, ds_size = None,
                  ds_same_dtmc_fraction = 0.2, train_size = 0.8, val_size = 0.1, batch_size = 32, seed = 42,

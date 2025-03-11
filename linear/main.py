@@ -2,6 +2,8 @@ import os
 import sys
 import json
 from multiprocessing import set_start_method
+
+from lightning_fabric import seed_everything
 from pytorch_lightning.loggers import TensorBoardLogger
 
 import torch
@@ -12,6 +14,7 @@ from dataloader import DTMCDataLoader, LabelType
 from network import SiameseNetwork
 
 torch.set_float32_matmul_precision('high')
+seed_everything(8, workers=True)
 
 def save_config(config, path):
     with open(path, 'w') as f:
@@ -52,7 +55,8 @@ def train_model(base_folder):
                                 ds_size=5000, batch_size=1024, seed=0, num_workers=8)
     model = SiameseNetwork(max_dtmc_size=max_dtmc_size, lr=lr, dl_hparams=dataloader.h_params)
     checkpoint_callback = ModelCheckpoint(dirpath=checkpoint_dir, save_top_k=2, monitor="val/loss")
-    trainer = pl.Trainer(max_epochs=max_epochs, accelerator="gpu", log_every_n_steps=1, logger=logger, callbacks=[checkpoint_callback])
+    trainer = pl.Trainer(max_epochs=max_epochs, accelerator="gpu", deterministic=True,
+                         log_every_n_steps=1, logger=logger, callbacks=[checkpoint_callback])
 
     config = {
         "name": name,
