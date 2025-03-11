@@ -63,35 +63,37 @@ class SiameseNetwork(pl.LightningModule):
         dtmc1, dtmc2, label = batch
         distance = self(dtmc1, dtmc2)
         loss = self.loss_fn(distance, label)
-        self.log("train/loss", loss, on_step=True, on_epoch=True)
-        self.log("train/distance", torch.mean(torch.abs(distance - label)), on_step=True, on_epoch=True)
+        self.log("train/loss", loss, on_step=True, on_epoch=True, sync_dist=True)
+        self.log("train/err_abs", torch.mean(torch.abs(distance - label)), on_step=True, on_epoch=True, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         dtmc1, dtmc2, label = batch
         distance = self(dtmc1, dtmc2)
         loss = self.loss_fn(distance, label)
-        self.log("val/loss", loss, on_step=False, on_epoch=True)
-        self.log("val/distance", torch.mean(torch.abs(distance - label)), on_step=False, on_epoch=True)
+        self.log("val/loss", loss, on_step=False, on_epoch=True, sync_dist=True)
+        self.log("val/err_abs", torch.mean(torch.abs(distance - label)), on_step=False, on_epoch=True, sync_dist=True)
         return loss
 
     def test_step(self, batch, batch_idx):
         dtmc1, dtmc2, label = batch
         distance = self(dtmc1, dtmc2)
         loss = self.loss_fn(distance, label)
-        self.log("test/loss", loss, on_step=False, on_epoch=True, reduce_fx="mean")
-        self.log("test/distance", torch.mean(torch.abs(distance - label)), on_step=False, on_epoch=True, reduce_fx="mean")
+        self.log("test/loss", loss, on_step=False, on_epoch=True, reduce_fx="mean", sync_dist=True)
+        self.log("test/err_abs", torch.mean(torch.abs(distance - label)), on_step=False, on_epoch=True, reduce_fx="mean", sync_dist=True)
         for b in batch:
             self.test_output.append((label, distance, torch.abs(distance - label)))
         return loss
 
     def on_test_end(self) -> None:
         global_diff_list = []
+        global_rel_diff_list = []
         for r in self.test_output:
             for label, model, difference in zip(*r):
-                print(f'Real distance: {label:.4f}, model distance: {model:.4f}, diff: {difference:.4f}')
+                print(f'Real distance: {label:.4f}, model distance: {model:.4f}, abs. err.: {difference:.4f}, rel. err.: {difference/label:.4f}')
                 global_diff_list.append(difference)
-        print(f'Difference avg: {sum(global_diff_list) / len(global_diff_list):.4f}')
+                global_rel_diff_list.append(difference/label)
+        print(f'Abs. err. avg: {sum(global_diff_list) / len(global_diff_list):.4f}, rel. err. avg: {sum(global_rel_diff_list) / len(global_rel_diff_list):.4f}')
 
 
     def configure_optimizers(self):
