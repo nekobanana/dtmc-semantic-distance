@@ -1,4 +1,6 @@
+import random
 
+import scipy
 import torch
 import pytorch_lightning as pl
 from torch import nn, optim
@@ -98,4 +100,3 @@ class SiameseNetwork(pl.LightningModule):
 
     def configure_optimizers(self):
         return optim.Adam(self.parameters(), lr=self.lr)
-
