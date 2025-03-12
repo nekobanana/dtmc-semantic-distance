@@ -23,6 +23,8 @@ class DTMCDataset(Dataset):
             same_DTMC_size = int(len(different_couples) / (1 - ds_same_DTMC_fraction) * ds_same_DTMC_fraction)
 
         different_couples = random.sample(different_couples, different_DTMC_size)
+        if same_DTMC_size > len(file_list):
+            same_DTMC_size = len(file_list)
         same_DTMC_indeces = random.sample(range(len(file_list)), same_DTMC_size)
         same_DTMC_couples = [(i, i) for i in same_DTMC_indeces]
         self.couples = different_couples + same_DTMC_couples
@@ -47,14 +49,14 @@ class DTMCDataset(Dataset):
         couple_idx = self.couples[idx]
         dtmc1 = torch.tensor(self.dtmc_data[couple_idx[0]], dtype=torch.float)
         if couple_idx[0] == couple_idx[1]:
-            return dtmc1, dtmc1[:], torch.tensor(0.)
+            return dtmc1, dtmc1[:], torch.tensor(0.), couple_idx
         dtmc2 = torch.tensor(self.dtmc_data[couple_idx[1]], dtype=torch.float)
         distr1 = torch.tensor(self.labels[couple_idx[0]], dtype=torch.float)
         distr2 = torch.tensor(self.labels[couple_idx[1]], dtype=torch.float)
-        label_diff = self.get_label_diff(distr1, distr2, dtmc1, dtmc2)
-        return label_diff
+        label_diff = self.get_couples_and_label_diff(distr1, distr2, dtmc1, dtmc2)
+        return *label_diff, couple_idx
 
-    def get_label_diff(self, label1, label2, dtmc1, dtmc2):
+    def get_couples_and_label_diff(self, label1, label2, dtmc1, dtmc2):
         pass
 
 
@@ -66,13 +68,13 @@ def get_label_diff_preparation(label1, label2):
 
 
 class HistogramTotalVarDTMCDataset(DTMCDataset):
-    def get_label_diff(self, label1, label2, dtmc1, dtmc2):
+    def get_couples_and_label_diff(self, label1, label2, dtmc1, dtmc2):
         label1, label2 = get_label_diff_preparation(label1, label2)
         label_diff = 0.5 * torch.linalg.norm(label1 - label2, ord=1)
         return dtmc1, dtmc2, label_diff
 
 class HistogramJSDTMCDataset(DTMCDataset):
-    def get_label_diff(self, label1, label2, dtmc1, dtmc2):
+    def get_couples_and_label_diff(self, label1, label2, dtmc1, dtmc2):
         label1, label2 = get_label_diff_preparation(label1, label2)
         eps = 1e-8  # Piccola costante per evitare problemi con zeri
         label1 = label1 + eps
@@ -92,4 +94,4 @@ class SpectralDistanceDTMCDataset(DTMCDataset):
         eigvals_m1 = torch.linalg.eig(dtmc1)
         eigvals_m2 = torch.linalg.eig(dtmc2)
         label = torch.linalg.vector_norm(eigvals_m1.eigenvalues - eigvals_m2.eigenvalues, ord=2)
-        return dtmc1, dtmc2, label
+        return dtmc1, dtmc2, label, couple_idx

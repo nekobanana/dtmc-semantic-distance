@@ -86,10 +86,8 @@ def test_model(checkpoint_path, test_folder):
     logger = get_logger_from_config(config)
     config["dataloader_params"]["dtmc_folder"] = os.path.join(test_folder, "dtmcs")
     config["dataloader_params"]["label_folder"] = os.path.join(test_folder, "labels")
-    config["dataloader_params"]["train_size"] = 0
-    config["dataloader_params"]["val_size"] = 0
-    config["dataloader_params"]["test_size"] = 1
     config["dataloader_params"]["label_type"] = LabelType[config["dataloader_params"]["label_type"].split(".")[-1]]
+    config["dataloader_params"]["batch_size"] = 1
 
     dataloader = DTMCDataLoader(**config["dataloader_params"])
     model = SiameseNetwork(**config["model_params"], checkpoint_name=checkpoint_path, dl_hparams=dataloader.h_params)
