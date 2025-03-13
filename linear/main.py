@@ -32,35 +32,6 @@ def get_checkpoint_dir(name, log_dir):
     print(f'checkpoint: {checkpoint_dir}')
     return checkpoint_dir
 
-def test_ranking_accuracy(model, test_dataloader, k):
-    """Valuta quanto l'ordinamento delle distanze predette si avvicina a quello reale."""
-    all_spearman_corrs = []
-
-    for dtmc_ref, a, b, couple_idx in test_dataloader.dataset:
-        dtmc_ref = dtmc_ref.unsqueeze(0)  # Aggiunge la dimensione batch
-        sampled_pairs_idx = random.sample(range(len(test_dataloader.dataset.dtmc_data)), k)
-        sampled_pairs = [test_dataloader.dataset.dtmc_data[idx] for idx in sampled_pairs_idx]
-        sampled_pairs = torch.stack([torch.tensor(p, dtype=torch.float) for p in sampled_pairs])
-
-        # Calcola le distanze predette dal modello
-        predicted_distances = model(dtmc_ref.repeat(10, 1, 1), sampled_pairs).detach().cpu().numpy()
-
-        # Recupera le distanze reali
-        true_distances = []
-        for idx in sampled_pairs_idx:
-            label1 = torch.tensor(test_dataloader.dataset.labels[couple_idx[0]])
-            label2 = torch.tensor(test_dataloader.dataset.labels[idx])
-            true_distances.append(test_dataloader.dataset.get_couples_and_label_diff(label1, label2, None, None)[2])
-        true_distances = torch.tensor(true_distances, dtype=torch.float).numpy()
-
-        # Calcola la correlazione di Spearman tra l'ordinamento predetto e quello reale
-        spearman_corr, _ = scipy.stats.spearmanr(predicted_distances, true_distances)
-        all_spearman_corrs.append(spearman_corr)
-
-    # Stampa la media della correlazione
-    avg_spearman_corr = sum(all_spearman_corrs) / len(all_spearman_corrs)
-    print(f'Avg. Spearman correlation ({k=}): {avg_spearman_corr:.4f}')
-    return avg_spearman_corr
 
 def train_model(base_folder):
     # base_folder = '../data/max50_random'
@@ -76,7 +47,6 @@ def train_model(base_folder):
 
     name = f'{str(label_type).lower().split(".")[-1]}_{base_folder.split("/")[-1]}'
     logger = TensorBoardLogger(log_dir, name=name)
-    log_dir = logger.log_dir
 
     checkpoint_dir = get_checkpoint_dir(name, log_dir)
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -106,7 +76,7 @@ def train_model(base_folder):
     # print(test_results)
 
 def get_logger_from_config(config):
-    name = config["name"]
+    # name = config["name"]
     log_dir = config["logdir"]
     logger = TensorBoardLogger(log_dir, name='test')
     return logger
@@ -122,17 +92,22 @@ def test_model(checkpoint_path, test_folder):
     config["dataloader_params"]["batch_size"] = 1
 
     dataloader = DTMCDataLoader(**config["dataloader_params"])
-    model = SiameseNetwork(**config["model_params"], checkpoint_name=checkpoint_path, dl_hparams=dataloader.h_params)
+    model = SiameseNetwork(**config["model_params"], log_dir=logger.log_dir, checkpoint_name=checkpoint_path, dl_hparams=dataloader.h_params)
     trainer = pl.Trainer(logger=logger, **config["trainer_params"], devices=1, num_nodes=1)
     test_results_same = trainer.test(model=model, dataloaders=dataloader.test_dataloader_same(),
                                      ckpt_path=checkpoint_path)
     print(test_results_same)
+    with open(model.output_file, "a") as f:
+        f.write(f'{test_results_same}\n\n')
 
-    model = SiameseNetwork(**config["model_params"], checkpoint_name=checkpoint_path, dl_hparams=dataloader.h_params)
+    model = SiameseNetwork(**config["model_params"], log_dir=logger.log_dir, checkpoint_name=checkpoint_path, dl_hparams=dataloader.h_params)
     test_results_different = trainer.test(model=model, dataloaders=dataloader.test_dataloader_different(),
                                           ckpt_path=checkpoint_path)
     print(test_results_different)
-    test_ranking_accuracy(model, dataloader.test_dataloader_same(), 10)
+    with open(model.output_file, "a") as f:
+        f.write(f'{test_results_different}\n\n')
+
+    model.test_ranking_accuracy(dataloader.test_dataloader_same(), 10)
 
 
 if __name__ == '__main__':
