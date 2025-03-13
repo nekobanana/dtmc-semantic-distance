@@ -4,6 +4,7 @@ import random
 import scipy
 import torch
 import pytorch_lightning as pl
+from matplotlib import pyplot as plt
 from torch import nn, optim
 import torch.nn.functional as F
 
@@ -49,6 +50,7 @@ class SiameseNetwork(pl.LightningModule):
         self.margin = margin
 
         self.test_output = []
+        self.log_dir = log_dir
         self.output_file = os.path.join(log_dir, 'out.txt')
         os.makedirs(log_dir, exist_ok=True)
         if not os.path.exists(self.output_file):
@@ -111,30 +113,47 @@ class SiameseNetwork(pl.LightningModule):
     def test_ranking_accuracy(self, test_dataloader, k):
         """Valuta quanto l'ordinamento delle distanze predette si avvicina a quello reale."""
         all_spearman_corrs = []
-
-        for dtmc_ref, a, b, couple_idx in test_dataloader.dataset:
-            dtmc_ref = dtmc_ref.unsqueeze(0)  # Aggiunge la dimensione batch
-            sampled_pairs_idx = random.sample(range(len(test_dataloader.dataset.dtmc_data)), k)
-            sampled_pairs = [test_dataloader.dataset.dtmc_data[idx] for idx in sampled_pairs_idx]
-            sampled_pairs = torch.stack([torch.tensor(p, dtype=torch.float) for p in sampled_pairs])
-
-            # Calcola le distanze predette dal modello
-            predicted_distances = self(dtmc_ref.repeat(10, 1, 1), sampled_pairs).detach().cpu().numpy()
-
-            # Recupera le distanze reali
-            true_distances = []
-            for idx in sampled_pairs_idx:
-                label1 = torch.tensor(test_dataloader.dataset.labels[couple_idx[0]])
-                label2 = torch.tensor(test_dataloader.dataset.labels[idx])
-                true_distances.append(test_dataloader.dataset.get_couples_and_label_diff(label1, label2, None, None)[2])
-            true_distances = torch.tensor(true_distances, dtype=torch.float).numpy()
-
-            # Calcola la correlazione di Spearman tra l'ordinamento predetto e quello reale
-            spearman_corr, _ = scipy.stats.spearmanr(predicted_distances, true_distances)
-            all_spearman_corrs.append(spearman_corr)
-
-        # Stampa la media della correlazione
-        avg_spearman_corr = sum(all_spearman_corrs) / len(all_spearman_corrs)
         with open(self.output_file, "a") as f:
+            for dtmc_ref, _, _, couple_idx in test_dataloader.dataset:
+                dtmc_ref = dtmc_ref.unsqueeze(0)  # Aggiunge la dimensione batch
+                sampled_pairs_idx = random.sample(range(len(test_dataloader.dataset.dtmc_data)), k)
+                sampled_pairs = [test_dataloader.dataset.dtmc_data[idx] for idx in sampled_pairs_idx]
+                sampled_pairs = torch.stack([torch.tensor(p, dtype=torch.float) for p in sampled_pairs])
+
+                f.write(f"\nDTMC index: {couple_idx[0]}")
+                f.write(f"\nSampled DTMCs indeces: {sampled_pairs_idx}")
+
+                # Calcola le distanze predette dal modello
+                predicted_distances = self(dtmc_ref.repeat(k, 1, 1), sampled_pairs).detach().cpu().numpy()
+                f.write(f"\nPredicted distances: {predicted_distances}")
+
+                # Recupera le distanze reali
+                true_distances = []
+                for idx in sampled_pairs_idx:
+                    label1 = torch.tensor(test_dataloader.dataset.labels[couple_idx[0]])
+                    label2 = torch.tensor(test_dataloader.dataset.labels[idx])
+                    true_distances.append(test_dataloader.dataset.get_couples_and_label_diff(label1, label2, None, None)[2])
+                true_distances = torch.tensor(true_distances, dtype=torch.float).numpy()
+                f.write(f"\nReal distances: {true_distances}")
+
+                # Calcola la correlazione di Spearman tra l'ordinamento predetto e quello reale
+                spearman_corr, _ = scipy.stats.spearmanr(predicted_distances, true_distances)
+                all_spearman_corrs.append(spearman_corr)
+
+                # Grafico dell'ordinamento
+                if couple_idx[0] % 100 == 0:
+                    plt.figure(figsize=(8, 6))
+                    plt.scatter(range(k), sorted(true_distances), label="Real distances", marker='o')
+                    plt.scatter(range(k), sorted(predicted_distances), label="Predicted distances", marker='x')
+                    plt.xlabel("Sorted position")
+                    plt.ylabel("Distance")
+                    plt.legend()
+                    plt.title(f"Sorting comparison (Spearman: {spearman_corr:.4f})")
+                    plt.savefig(os.path.join(self.log_dir, f"spearman_{couple_idx[0]}.png"))
+
+            # Stampa la media della correlazione
+            avg_spearman_corr = sum(all_spearman_corrs) / len(all_spearman_corrs)
+
             f.write(f'Avg. Spearman correlation ({k=}): {avg_spearman_corr:.4f}\n\n')
+            print(f"Avg. Spearman correlation ({k=}): {avg_spearman_corr:.4f}\n\n")
         return avg_spearman_corr
