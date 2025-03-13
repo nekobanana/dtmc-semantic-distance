@@ -108,7 +108,7 @@ def train_model(base_folder):
 def get_logger_from_config(config):
     name = config["name"]
     log_dir = config["logdir"]
-    logger = TensorBoardLogger(log_dir, name=name)
+    logger = TensorBoardLogger(log_dir, name='test')
     return logger
 
 
@@ -124,9 +124,13 @@ def test_model(checkpoint_path, test_folder):
     dataloader = DTMCDataLoader(**config["dataloader_params"])
     model = SiameseNetwork(**config["model_params"], checkpoint_name=checkpoint_path, dl_hparams=dataloader.h_params)
     trainer = pl.Trainer(logger=logger, **config["trainer_params"], devices=1, num_nodes=1)
-    test_results_same = trainer.test(model=model, dataloaders=dataloader.test_dataloader_same(), ckpt_path=checkpoint_path)
+    test_results_same = trainer.test(model=model, dataloaders=dataloader.test_dataloader_same(),
+                                     ckpt_path=checkpoint_path)
     print(test_results_same)
-    test_results_different = trainer.test(model=model, dataloaders=dataloader.test_dataloader_different(), ckpt_path=checkpoint_path)
+
+    model = SiameseNetwork(**config["model_params"], checkpoint_name=checkpoint_path, dl_hparams=dataloader.h_params)
+    test_results_different = trainer.test(model=model, dataloaders=dataloader.test_dataloader_different(),
+                                          ckpt_path=checkpoint_path)
     print(test_results_different)
     test_ranking_accuracy(model, dataloader.test_dataloader_same(), 10)
 
