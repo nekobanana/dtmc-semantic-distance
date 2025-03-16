@@ -107,7 +107,7 @@ def test_model(checkpoint_path, test_folder):
     with open(model.output_file, "a") as f:
         f.write(f'{test_results_different}\n\n')
 
-    model.test_ranking_accuracy(dataloader.test_dataloader_same(), 10)
+    model.test_ranking_accuracy(dataloader.test_dataloader_same(), 100)
 
 
 if __name__ == '__main__':
