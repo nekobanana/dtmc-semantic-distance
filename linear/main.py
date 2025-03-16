@@ -120,5 +120,5 @@ if __name__ == '__main__':
         test_model(sys.argv[2], sys.argv[3])
     else:
         print("Usage:")
-        print("  train <base_folder_path>")
-        print("  test <checkpoint_path> <test_folder>")
+        print("  train <train_dataset_folder>")
+        print("  test <checkpoint_path> <test_dataset_folder>")
